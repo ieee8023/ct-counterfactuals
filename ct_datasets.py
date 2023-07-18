@@ -13,14 +13,15 @@ class TotalSegmenter_Dataset():
         
         
         sizes = []
-        for image_id in tqdm(self.raw_csv.image_id):
-            g = nib.load(path + image_id + "/ct.nii.gz")
+        #for image_id in tqdm(self.raw_csv.image_id):
+        for i, row in tqdm(self.raw_csv.iterrows(), total=self.raw_csv.shape[0]):
+            g = nib.load(path + row.image_id + "/ct.nii.gz")
             meta = {
-                'image_id': image_id,
                 'frame': list(range(g.shape[2])),
                 'frame_height':g.shape[0],
                 'frame_width': g.shape[1],
             }
+            meta.update(row)
             meta.update(dict(g.header))
             sizes.append(meta)
             
