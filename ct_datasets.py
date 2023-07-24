@@ -29,16 +29,16 @@ class TotalSegmenter_Dataset():
         self.transform = transform
         self.raw_csv = pd.read_csv(self.path + 'meta.csv', delimiter=';')
         
+        self.broken_zips = ['s0864']
+        self.raw_csv = self.raw_csv[~self.raw_csv.image_id.isin(self.broken_zips)]
+        
         metadata_path = self.path + 'meta_frame.csv.gz'
         if not os.path.exists(metadata_path):
             print('creating frame metadata at ' + metadata_path)
             self.create_meta(metadata_path)
         self.csv = pd.read_csv(metadata_path) 
         
-        if not os.path.exists(self.cache_dir):
-            print('creating cache at ' + self.cache_dir)
-            self.create_cache()
-        
+        self.create_cache()
         
         self.pathologies = []
         self.labels = np.zeros([len(self.csv),0])
@@ -62,19 +62,18 @@ class TotalSegmenter_Dataset():
         
 
     def create_cache(self):
-        os.mkdir(self.cache_dir)
+        os.makedirs(self.cache_dir, exists_ok=True)
         
         for image_id, row in tqdm(self.csv.groupby('image_id')):
-            path = self.path + image_id + "/ct.nii.gz"
-            g = nib.load(path)
-            volume = g.get_fdata()
-            
-            for frame_idx in row.frame:
-                cache_path = self.cache_dir + f'/{image_id}_{frame_idx}.npz'
-                np.savez_compressed(cache_path, volume[:,:,frame_idx])
+            if not os.path.exists(self.cache_dir + f'/{image_id}_0.npz'):
                 
-                
-        
+                path = self.path + image_id + "/ct.nii.gz"
+                g = nib.load(path)
+                volume = g.get_fdata()
+
+                for frame_idx in row.frame:
+                    cache_path = self.cache_dir + f'/{image_id}_{frame_idx}.npz'
+                    np.savez_compressed(cache_path, volume[:,:,frame_idx])
     
     
     def string(self):
