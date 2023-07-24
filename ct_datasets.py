@@ -62,7 +62,7 @@ class TotalSegmenter_Dataset():
         
 
     def create_cache(self):
-        os.makedirs(self.cache_dir, exists_ok=True)
+        os.makedirs(self.cache_dir, exist_ok=True)
         
         for image_id, row in tqdm(self.csv.groupby('image_id')):
             if not os.path.exists(self.cache_dir + f'/{image_id}_0.npz'):
