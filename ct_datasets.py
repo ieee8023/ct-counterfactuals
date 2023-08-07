@@ -89,6 +89,8 @@ class TotalSegmenter_Dataset():
         
         cache_path = self.cache_dir + f'/{sample["image_id"]}_{sample["frame"]}.npz'
         item['img'] = np.load(cache_path)['arr_0']
+        
+        item['img'] = item['img']/1024.0
 
         if self.transform:
             item['img'] = self.transform(item['img'])
