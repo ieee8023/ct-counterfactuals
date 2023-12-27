@@ -1,25 +1,88 @@
 import pandas as pd
 import nibabel as nib
+import torchvision
 import torchxrayvision as xrv
 from tqdm.autonotebook import tqdm
 import numpy as np
 import os
+import skimage
+import glob
 
-
-def get_data(datasets_str, transform=None, path="/home/users/joecohen/scratch/data-scratch/Totalsegmentator_dataset/", merge=True):
+def get_data(datasets_str, size=512, transform=None, path="/home/users/joecohen/scratch/data-cts/", merge=True):
     
     datasets = []
     
     if "total" in datasets_str:
-        datasets.append(TotalSegmenter_Dataset(path, transform))
-    
+        datasets.append(TotalSegmenter_Dataset(
+            path + 'Totalsegmentator_dataset/', 
+            transform=torchvision.transforms.Compose(
+                [ResizeScale(size/256)] + 
+                ([transform] if not transform is None else [])
+            )
+        ))
+        # because total segmenter dataset is half size and the other ones are not
+
+    if "deeplesion" in datasets_str:
+        datasets.append(DeepLesion_Dataset(
+            path + 'DeepLesion/', 
+            transform=torchvision.transforms.Compose(
+                [ResizeScale(size/512)] + 
+                ([transform] if not transform is None else [])
+            )
+        ))
+
+    if "luna16" in datasets_str:
+        datasets.append(LUNA16_Dataset(
+            path + 'LUNA16/', 
+            transform=torchvision.transforms.Compose(
+                [ResizeScale(size/512)] + 
+                ([transform] if not transform is None else [])
+            )
+        ))
+        
     if merge:
         dmerge = xrv.datasets.Merge_Dataset(datasets)
         return dmerge
     else:
         return datasets
 
-    
+class RandomCrop:
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        
+    def __call__(self, img):
+        assert img.shape[0] >= self.height
+        assert img.shape[1] >= self.width
+        x = np.random.randint(0, img.shape[1] - self.width)
+        y = np.random.randint(0, img.shape[0] - self.height)
+        img = img[y:y+self.height, x:x+self.width]
+        return img
+
+
+class Resize:
+    def __init__(self, size):
+        self.size = size
+        
+    def __call__(self, img):
+        return skimage.transform.resize(
+            img,
+            (self.size, self.size), 
+            anti_aliasing=True,
+        )
+
+class ResizeScale:
+    def __init__(self, scale):
+        self.scale = scale
+        
+    def __call__(self, img):
+        return skimage.transform.resize(
+            img,
+            (img.shape[0]*self.scale, img.shape[1]*self.scale), 
+            anti_aliasing=True,
+        )
+
+
 class TotalSegmenter_Dataset():
     def __init__(self, path, transform=None):
         super().__init__()
@@ -79,6 +142,9 @@ class TotalSegmenter_Dataset():
     def string(self):
         return self.__class__.__name__ + " num_samples={}".format(len(self))
 
+    def __repr__(self):
+        return self.string()
+        
     def __len__(self):
         return len(self.csv)
 
@@ -88,10 +154,167 @@ class TotalSegmenter_Dataset():
         sample = self.csv.iloc[idx]
         
         cache_path = self.cache_dir + f'/{sample["image_id"]}_{sample["frame"]}.npz'
-        item['img'] = np.load(cache_path)['arr_0']
-        
-        item['img'] = item['img']/1024.0
 
-        if self.transform:
-            item['img'] = self.transform(item['img'])
-        return item
+        try:
+            item['img'] = np.load(cache_path)['arr_0']
+            
+            item['img'] = item['img']/1024.0
+    
+            if self.transform:
+                item['img'] = self.transform(item['img'])
+            return item
+        except Exception as e:
+            print(f'Issue with {cache_path}')
+            raise e
+
+
+class DeepLesion_Dataset():
+    def __init__(self, path, transform=None, img_folder_path='/Images_png/Images_png/'):
+        super().__init__()
+        
+        self.path = path
+        self.img_folder_path = img_folder_path
+        self.transform = transform
+        self.raw_csv = pd.read_csv(self.path + 'DL_info.csv')
+        self.csv = self.raw_csv.copy()
+
+        def expand(x):
+            s = x.split(', ')
+            return np.arange(int(s[0]),int(s[1])).tolist()
+        
+        self.csv['slice'] = self.csv.Slice_range.apply(expand)
+        self.csv = self.csv.explode('slice')
+
+        self.csv = self.csv.groupby(['Patient_index','Study_index','Series_ID','slice']).first().reset_index()
+
+        self.csv['frame_height'] = self.csv.Image_size.apply(lambda x: int(x.split(', ')[0]))
+        self.csv['frame_width'] = self.csv.Image_size.apply(lambda x: int(x.split(', ')[1]))
+        
+        self.pathologies = []
+        self.labels = np.zeros([len(self.csv),0])
+    
+    def string(self):
+        return self.__class__.__name__ + " num_samples={}".format(len(self))
+        
+    def __repr__(self):
+        return self.string()
+
+    def __len__(self):
+        return len(self.csv)
+
+    def __getitem__(self, idx):
+        
+        item = {}
+        row = self.csv.iloc[idx]
+
+        path = self.path + self.img_folder_path + f'{row.Patient_index:06d}_{row.Study_index:02d}_{row.Series_ID:02d}/{row.Key_slice_index:03d}.png'
+        
+        try:
+            item['img'] = skimage.io.imread(path)
+    
+            item['img'] = skimage.transform.rotate(item['img'],-90, preserve_range=True)
+    
+            # normalize 
+            item['img'] = ((item['img']-31536.0)/(34686.0-31536.0))
+            item['img'] = (item['img']*2.0)-1.0
+    
+            if self.transform:
+                item['img'] = self.transform(item['img'])
+            return item
+        except Exception as e:
+            print(f'Issue with {path}')
+            raise e
+
+
+class LUNA16_Dataset():
+    def __init__(self, path, transform=None):
+        super().__init__()
+        
+        self.path = path
+        self.cache_dir = self.path + '/cache/'
+        self.transform = transform
+        self.raw_csv = pd.DataFrame(glob.glob(f'{path}/*.mhd'),columns=['filename'])
+        self.raw_csv['filename'] = self.raw_csv.filename.apply(os.path.basename)
+        
+        self.metadata_path = self.path + 'meta_frame.csv.gz'
+        if not os.path.exists(self.metadata_path):
+            print('creating frame metadata at ' + self.metadata_path)
+            self.create_meta(self.metadata_path)
+        self.csv = pd.read_csv(self.metadata_path) 
+        
+        self.create_cache()
+        
+        self.pathologies = []
+        self.labels = np.zeros([len(self.csv),0])
+
+            
+    def create_meta(self, filename):
+        sizes = []
+        for i, row in tqdm(self.raw_csv.iterrows(), total=self.raw_csv.shape[0]):
+            path = self.path + row.filename
+            g = skimage.io.imread(path, plugin='simpleitk')
+            meta = {
+                'frame': list(range(g.shape[0])),
+                'frame_height':g.shape[1],
+                'frame_width': g.shape[2],
+            }
+            meta.update(row)
+            sizes.append(meta)
+            
+        csv = pd.DataFrame(sizes).explode('frame')
+        csv.to_csv(filename, index=None)
+        
+
+    def create_cache(self):
+        os.makedirs(self.cache_dir, exist_ok=True)
+        
+        for filename, row in tqdm(self.csv.groupby('filename')):
+            all_exist = True
+            for frame_idx in row.frame:
+                path_to_check = f'{self.cache_dir}/{filename}_{frame_idx}.npz'
+                if not all_exist:
+                    break # we found an error already
+                elif not os.path.exists(path_to_check):
+                    all_exist = False
+                    if frame_idx != 0: # if not the first one
+                        print(f'Missing cache file {path_to_check}. Will recompute.')
+                    
+            if not all_exist:
+                path = self.path + filename
+                g = skimage.io.imread(path, plugin='simpleitk')
+
+                for frame_idx in row.frame:
+                    cache_path = self.cache_dir + f'/{filename}_{frame_idx}.npz'
+                    img = g[frame_idx,:,:]
+                    img = skimage.transform.rotate(img,-90, preserve_range=True)
+                    np.savez_compressed(cache_path, img)
+    
+    
+    def string(self):
+        return self.__class__.__name__ + " num_samples={}".format(len(self))
+
+    def __repr__(self):
+        return self.string()
+        
+    def __len__(self):
+        return len(self.csv)
+
+    def __getitem__(self, idx):
+        
+        item = {}
+        sample = self.csv.iloc[idx]
+        
+        cache_path = self.cache_dir + f'/{sample["filename"]}_{sample["frame"]}.npz'
+        try:
+            item['img'] = np.load(cache_path)['arr_0']
+            
+            item['img'] = item['img']/1024.0
+    
+            if self.transform:
+                item['img'] = self.transform(item['img'])
+            return item
+        except Exception as e:
+            print(f'Issue with {cache_path}')
+            raise e
+
+
