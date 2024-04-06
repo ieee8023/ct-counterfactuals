@@ -23,10 +23,14 @@ class VQGAN(nn.Module):
             vqmodel.load_state_dict(a['state_dict'])
         
         self.model = vqmodel
-        
-        #self.upsample = torch.nn.Upsample(size=(self.resolution, self.resolution), mode='bilinear', align_corners=False)
     
     def encode(self, x):
+
+        # input range is 0,1 but this model expects [-1, 1]
+        #x = (x*2.8)-1
+        #x = ((x*2.5)-1)
+        x = ((x*2)-1)
+        
         self.input_size = x.shape[3]
         if not self.resize is None:
             x = torchvision.transforms.Resize(self.resize)(x)
@@ -36,6 +40,10 @@ class VQGAN(nn.Module):
         xp = self.model.decode(z)
         if not self.resize is None:
             xp = torchvision.transforms.Resize(self.input_size)(xp)
+
+        # the model should output between 0,1
+        xp = ((xp+2)/4)
+        
         return xp
     
     def forward(self, x):

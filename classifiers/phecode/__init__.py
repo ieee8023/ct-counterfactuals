@@ -1,7 +1,4 @@
 import argparse
-import nibabel as nib
-import nibabel.processing
-import monai
 import numpy as np
 import pandas as pd
 import sys
@@ -11,6 +8,13 @@ import pathlib
 import torch.nn as nn
 from . import classes
 
+from contrastive_3d.eval.counterfactuals import utils
+from contrastive_3d.models import clip_model_3d
+
+
+def get_cache_folder():
+    return os.path.expanduser(os.path.join("~", ".cache", "latentshift/"))
+
 thisfolder = os.path.dirname(__file__)
 
 class PheCodeClassifier(nn.Module):
@@ -18,22 +22,41 @@ class PheCodeClassifier(nn.Module):
     def __init__(self):
         super(PheCodeClassifier, self).__init__()
 
+        # print("Downloading model from huggingface...")
+        # utils.download_artifact_from_hf(download_dir=MODEL_SAVE_PATH, file_name="i3_resnet_clinical_longformer_last_clip_02-16-2024_20-57-21_epoch_27.pt")
+        model_config = {
+            "architecture": "i3_resnet_clinical_longformer",
+            "text_encoder": "clinical_longformer",
+            "use_ehr": True
+        }
+        
+        self.resolution = 224
+        
         _MODEL_PATH = (
-            pathlib.Path(thisfolder) / "models" / "densenet_121_phecodes_expanded.pt"
+            pathlib.Path(get_cache_folder()) / "i3_resnet_clinical_longformer_last_clip_02-16-2024_20-57-21_epoch_27.pt"
         )
+
+        self.model = clip_model_3d.Clip3D(model_config)
     
-        self.model = monai.networks.nets.densenet.densenet121(
-            spatial_dims=3, in_channels=1, out_channels=1692
-        )
-        self.model.load_state_dict(torch.load(_MODEL_PATH,map_location=torch.device('cpu')))
+        # self.model = monai.networks.nets.densenet.densenet121(
+        #     spatial_dims=3, in_channels=1, out_channels=1692
+        # )
+        self.model.load_state_dict(torch.load(_MODEL_PATH, map_location=torch.device('cpu')))
+
+        # self.upsample = torch.nn.Upsample(size=(self.resolution, self.resolution, -1), mode='bilinear', align_corners=False)
     
+
+        
         self.csv = _map_to_phenotypes()
         self.targets = self.csv.phecode_str.tolist()
     
-
+    def features(self, x):
+        assert x.shape[-3:-1] == (self.resolution,self.resolution)
+        return self.model.encode_image(x)[0]
 
     def forward(self, x):
-        return self.model(x)
+        assert x.shape[-3:-1] == (self.resolution,self.resolution)
+        return self.model.encode_image(x)[1]
     
     
 

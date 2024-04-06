@@ -1,0 +1,7 @@
+simpleitk
+scikit-image
+numpy
+tqdm
+nibabel
+pandas
+torchxrayvision

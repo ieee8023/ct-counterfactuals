@@ -8,6 +8,28 @@ import os
 import skimage
 import glob
 
+import monai
+import torch
+import os
+from tqdm import tqdm
+from monai.transforms import (
+    EnsureChannelFirstd,
+    Compose,
+    LoadImaged,
+    Orientationd,
+    ScaleIntensityRanged,
+    Spacingd,
+    SpatialPadd,
+    ToTensord, 
+    CenterSpatialCropd,
+)
+
+
+from torch.utils.data import Dataset
+
+
+
+
 def get_data(datasets_str, size=512, transform=None, path="/home/users/joecohen/scratch/data-cts/", merge=True):
     
     datasets = []
@@ -234,6 +256,10 @@ class LUNA16_Dataset():
         self.cache_dir = self.path + '/cache/'
         self.transform = transform
         self.raw_csv = pd.DataFrame(glob.glob(f'{path}/*.mhd'),columns=['filename'])
+
+        if len(self.raw_csv) == 0:
+            raise Exception('No mhd files found. The files may not have been unzipped.')
+        
         self.raw_csv['filename'] = self.raw_csv.filename.apply(os.path.basename)
         
         self.metadata_path = self.path + 'meta_frame.csv.gz'
@@ -316,5 +342,41 @@ class LUNA16_Dataset():
         except Exception as e:
             print(f'Issue with {cache_path}')
             raise e
+
+
+
+class NIFTI_Dataset(Dataset):
+    def __init__(self, path):
+
+        self.path = path
+        # Initialize the image preprocessing transforms
+        transforms_image = Compose(
+            [
+                LoadImaged(keys=["image"]),
+                EnsureChannelFirstd(keys=["image"]),
+                Orientationd(keys=["image"], axcodes="RAS"),
+                Spacingd(keys=["image"], pixdim=(1.5, 1.5, 3), mode=("bilinear")),
+                ScaleIntensityRanged(
+                    keys=["image"], a_min=-1000, a_max=1000, b_min=0.0, b_max=1.0, clip=True
+                ),
+                SpatialPadd(keys=["image"], spatial_size=[224, 224, 160]),
+                CenterSpatialCropd(
+                    roi_size=[224, 224, 160],
+                    keys=["image"],
+                ),
+                ToTensord(keys=["image"]),
+            ]
+        )
+        
+        image_paths = glob.glob(self.path + "*.nii.gz")
+        data_list = [{"image": image_path, "image_path": image_path} for image_path in image_paths]
+        self.dataset = monai.data.Dataset(data_list, transform=transforms_image)
+
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, idx):
+        return self.dataset[idx]
 
 
