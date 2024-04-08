@@ -346,27 +346,28 @@ class LUNA16_Dataset():
 
 
 class NIFTI_Dataset(Dataset):
-    def __init__(self, path):
+    def __init__(self, path, transforms_image=None):
 
         self.path = path
-        # Initialize the image preprocessing transforms
-        transforms_image = Compose(
-            [
-                LoadImaged(keys=["image"]),
-                EnsureChannelFirstd(keys=["image"]),
-                Orientationd(keys=["image"], axcodes="RAS"),
-                Spacingd(keys=["image"], pixdim=(1.5, 1.5, 3), mode=("bilinear")),
-                ScaleIntensityRanged(
-                    keys=["image"], a_min=-1000, a_max=1000, b_min=0.0, b_max=1.0, clip=True
-                ),
-                SpatialPadd(keys=["image"], spatial_size=[224, 224, 160]),
-                CenterSpatialCropd(
-                    roi_size=[224, 224, 160],
-                    keys=["image"],
-                ),
-                ToTensord(keys=["image"]),
-            ]
-        )
+        if transforms_image is None:
+            # Initialize the image preprocessing transforms
+            transforms_image = Compose(
+                [
+                    LoadImaged(keys=["image"]),
+                    EnsureChannelFirstd(keys=["image"]),
+                    Orientationd(keys=["image"], axcodes="RAS"),
+                    Spacingd(keys=["image"], pixdim=(1.5, 1.5, 3), mode=("bilinear")),
+                    ScaleIntensityRanged(
+                        keys=["image"], a_min=-1000, a_max=1000, b_min=0.0, b_max=1.0, clip=True
+                    ),
+                    SpatialPadd(keys=["image"], spatial_size=[224, 224, 160]),
+                    CenterSpatialCropd(
+                        roi_size=[224, 224, 160],
+                        keys=["image"],
+                    ),
+                    ToTensord(keys=["image"]),
+                ]
+            )
         
         image_paths = glob.glob(self.path + "*.nii.gz")
         data_list = [{"image": image_path, "image_path": image_path} for image_path in image_paths]
