@@ -346,7 +346,7 @@ class LUNA16_Dataset():
 
 
 class NIFTI_Dataset(Dataset):
-    def __init__(self, path, transforms_image=None):
+    def __init__(self, path, transforms_image=None, resolution=256):
 
         self.path = path
         if transforms_image is None:
@@ -360,9 +360,9 @@ class NIFTI_Dataset(Dataset):
                     ScaleIntensityRanged(
                         keys=["image"], a_min=-1000, a_max=1000, b_min=0.0, b_max=1.0, clip=True
                     ),
-                    SpatialPadd(keys=["image"], spatial_size=[224, 224, 160]),
+                    SpatialPadd(keys=["image"], spatial_size=[resolution, resolution, 160]),
                     CenterSpatialCropd(
-                        roi_size=[224, 224, 160],
+                        roi_size=[resolution, resolution, 160],
                         keys=["image"],
                     ),
                     ToTensord(keys=["image"]),

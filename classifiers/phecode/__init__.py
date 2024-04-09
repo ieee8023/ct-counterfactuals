@@ -43,18 +43,21 @@ class PheCodeClassifier(nn.Module):
         # )
         self.model.load_state_dict(torch.load(_MODEL_PATH, map_location=torch.device('cpu')))
 
-        # self.upsample = torch.nn.Upsample(size=(self.resolution, self.resolution, -1), mode='bilinear', align_corners=False)
+        
     
-
+        self.upsample = torch.nn.Upsample(size=(self.resolution, self.resolution), mode='bilinear', align_corners=False)
         
         self.csv = _map_to_phenotypes()
         self.targets = self.csv.phecode_str.tolist()
     
     def features(self, x):
+        
+        x = self.upsample(x[0].swapaxes(1,3)).swapaxes(1,3)[None,...]
         assert x.shape[-3:-1] == (self.resolution,self.resolution)
         return self.model.encode_image(x)[0]
 
     def forward(self, x):
+        x = self.upsample(x[0].swapaxes(1,3)).swapaxes(1,3)[None,...]
         assert x.shape[-3:-1] == (self.resolution,self.resolution)
         return self.model.encode_image(x)[1]
     

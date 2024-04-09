@@ -51,7 +51,7 @@ class VQGAN(nn.Module):
 
 
 class SliceAEFull:
-    def __init__(self, ae, start, end, limit_to_slices=False, resize=512):
+    def __init__(self, ae, start, end, limit_to_slices=False):
         self.ae = ae
         self.start = start
         self.end = end
