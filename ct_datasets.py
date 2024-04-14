@@ -360,9 +360,9 @@ class NIFTI_Dataset(Dataset):
                     ScaleIntensityRanged(
                         keys=["image"], a_min=-1000, a_max=1000, b_min=0.0, b_max=1.0, clip=True
                     ),
-                    SpatialPadd(keys=["image"], spatial_size=[resolution, resolution, 160]),
+                    SpatialPadd(keys=["image"], spatial_size=[resolution, resolution, -1]),
                     CenterSpatialCropd(
-                        roi_size=[resolution, resolution, 160],
+                        roi_size=[resolution, resolution, -1],
                         keys=["image"],
                     ),
                     ToTensord(keys=["image"]),

@@ -4,6 +4,7 @@ from omegaconf import OmegaConf
 import taming.models.vqgan
 import ct_datasets
 import torchvision
+import numpy as np
 
 class VQGAN(nn.Module):
     
@@ -50,7 +51,7 @@ class VQGAN(nn.Module):
         return self.decode(self.encode(x))
 
 
-class SliceAEFull:
+class SliceAECrop:
     def __init__(self, ae, start, end, limit_to_slices=False):
         self.ae = ae
         self.start = start
@@ -69,4 +70,38 @@ class SliceAEFull:
             return  xxp[...,None].transpose(-1,0)
         else:
             return torch.cat([self.x[:,:,:,:,:self.start], xxp[...,None].transpose(-1,0), self.x[:,:,:,:,self.end:]], 4)
-    
+
+
+class SliceAEFull:
+    """Encodes the entire volume but restricts the gradient to only decoding between some range"""
+    def __init__(self, ae, start, end, batch_size = 16):
+        self.ae = ae
+        self.start = start
+        self.end = end
+        self.batch_size = batch_size
+        
+    def encode(self, x):
+        """Slice from the """
+        zz = x.transpose(-1,0)[...,0]
+        with torch.no_grad():
+            zs = [self.ae.encode(zz[i:i+self.batch_size]) for i in np.arange(0,len(zz),self.batch_size)]
+        zs = torch.cat(zs)
+        return zs
+
+    def decode(self, zz):
+
+        with torch.no_grad():
+            xx = [self.ae.decode(zz[i:i+self.batch_size]) for i in np.arange(0,len(zz),self.batch_size)]
+            
+        xx = torch.cat(xx)
+        xx[self.start:self.end] = self.ae.decode(zz[self.start:self.end])
+        
+        return xx[...,None].transpose(-1,0)
+
+
+
+
+
+
+
+
