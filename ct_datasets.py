@@ -369,7 +369,7 @@ class NIFTI_Dataset(Dataset):
                 ]
             )
         
-        image_paths = glob.glob(self.path + "*.nii.gz")
+        image_paths = glob.glob(self.path + "*.nii*")
         data_list = [{"image": image_path, "image_path": image_path} for image_path in image_paths]
         self.dataset = monai.data.Dataset(data_list, transform=transforms_image)
 
