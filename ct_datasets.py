@@ -381,3 +381,13 @@ class NIFTI_Dataset(Dataset):
         return self.dataset[idx]
 
 
+
+def window_level(x, lower, upper):
+    # abdomen, 50, 400
+    lower = lower/2048 + 0.5
+    upper = upper/2048 + 0.5
+    print(lower, upper)
+    x = np.minimum(x, upper)
+    x = np.maximum(x, lower)
+    return x
+    
