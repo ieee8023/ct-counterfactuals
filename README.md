@@ -14,10 +14,21 @@ out = clf(x)
 out.shape # [1, 1692]
 ```
 
-A VQ-GAN autoencoder trained on X
+A VQ-GAN autoencoder trained on CT slices
 ```
 import ct_counterfactuals as ct_cf
 ae = ct_cf.ae.VQGAN(weights='2023-12-25T10-26-40_ct2_vqgan256_sddd')
+x = torch.ones([1, 1, 224, 224])
+out = ae(x)
+out.shape # [1, 1, 224, 224]
+```
+
+Utility code is provided to encode 3D volumes
+```
+import ct_counterfactuals as ct_cf
+ae = ct_cf.ae.VQGAN(weights='2023-12-25T10-26-40_ct2_vqgan256_sddd')
+
+slice_ae = SliceAEFull(ae, 45, 55) # range specified is where gradients can propigate
 x = torch.ones([1, 1, 224, 224, 174])
 out = ae(x)
 out.shape # [1, 1, 224, 224, 174]
