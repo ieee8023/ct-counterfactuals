@@ -5,16 +5,16 @@ The code and models here were used in the Paper [📄 Merlin: A Vision Language 
 
 ## Models
 
-A X target classifier 
+A 1692 target classifier predicting phenotypes from CT scans
 ```
 import ct_counterfactuals as ct_cf
 clf = ct_cf.classifiers.phecode2.PheCodeClassifier()
 x = torch.ones([1, 1, 224, 224, 174])
 out = clf(x)
-out.shape # [1, X]
+out.shape # [1, 1692]
 ```
 
-A VQ-GAN autoencoder trained on 
+A VQ-GAN autoencoder trained on X
 ```
 import ct_counterfactuals as ct_cf
 ae = ct_cf.ae.VQGAN(weights='2023-12-25T10-26-40_ct2_vqgan256_sddd')
