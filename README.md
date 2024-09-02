@@ -3,19 +3,35 @@
 The code and models here were used in the Paper [📄 Merlin: A Vision Language Foundation Model for 3D Computed Tomography
 ](https://arxiv.org/abs/2406.06512).
 
-## Models
+## Classifiers
 
 A 1692 target classifier predicting phenotypes from CT scans
-```
+```python
 import ct_counterfactuals as ct_cf
-clf = ct_cf.classifiers.phecode2.PheCodeClassifier()
+model = ct_cf.classifiers.phecode.PheCodeClassifier()
 x = torch.ones([1, 1, 224, 224, 174])
-out = clf(x)
+out = model(x)
 out.shape # [1, 1692]
 ```
 
-A VQ-GAN autoencoder trained on CT slices
+A lung segmentation model from CT slices
+```python
+import ct_counterfactuals as ct_cf
+model = ct_cf.classifiers.lungmask.LungMaskSegmenter()
+x = torch.ones([1, 1, 224, 224, 174])
+out = model(x)
+out.shape # [1, 3, 224, 224, 1]
+
+# Channels
+# 0 = No lung
+# 1 = Right lung
+# 2 = Left lung
 ```
+
+## Autoencoders
+
+A VQ-GAN autoencoder trained on CT slices
+```python
 import ct_counterfactuals as ct_cf
 ae = ct_cf.ae.VQGAN(weights='2023-12-25T10-26-40_ct2_vqgan256_sddd')
 x = torch.ones([1, 1, 224, 224])
