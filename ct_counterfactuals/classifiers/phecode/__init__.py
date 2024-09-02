@@ -16,6 +16,10 @@ import copy
 thisfolder = os.path.dirname(__file__)
 
 class PheCodeClassifier(nn.Module):
+    """A 1692 target classifier predicting phenotypes from CT scans "Model from Merlin: A Vision Language Foundation Model for 3D Computed Tomography"
+
+    https://arxiv.org/abs/2406.06512
+    """
 
     def __init__(self, download=False):
         super(PheCodeClassifier, self).__init__()
