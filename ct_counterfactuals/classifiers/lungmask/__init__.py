@@ -6,27 +6,35 @@ import os
 import torch
 import pathlib
 import torch.nn as nn
+import latentshift
 from .resunet import UNet
 
 
-def get_cache_folder():
-    return os.path.expanduser(os.path.join("~", ".cache", "latentshift/"))
-
-thisfolder = os.path.dirname(__file__)
-
-
-
 class LungMaskSegmenter(nn.Module):
+    """U-net(R231): This model was trained on a large and diverse dataset that covers a wide range of visual variabiliy. The model performs segmentation on individual slices, extracts right-left lung seperately includes airpockets, tumors and effusions. The trachea will not be included in the lung segmentation. https://doi.org/10.1186/s41747-020-00173-2
 
-    def __init__(self):
+    https://github.com/JoHof/lungmask
+
+    Hofmanninger, J., Prayer, F., Pan, J. et al. Automatic lung segmentation in routine imaging is primarily a data diversity problem, not a methodology problem. Eur Radiol Exp 4, 50 (2020). https://doi.org/10.1186/s41747-020-00173-2
+    """
+
+    def __init__(self, download=False):
         super(LungMaskSegmenter, self).__init__()
 
         self.resolution = 224
         
-        _MODEL_PATH = (
-            pathlib.Path(get_cache_folder()) / "lungmask-unet_r231-d5d2fc3d.pth"
+        weights_path = (
+            pathlib.Path(latentshift.utils.get_cache_folder()) / "lungmask-unet_r231-d5d2fc3d.pth"
         )
-        state_dict = torch.load(_MODEL_PATH, map_location=torch.device('cpu'))
+
+        if not os.path.isfile(weights_path):
+            if download:
+                latentshift.utils.download(baseurl + weights, ckpt_path)
+            else:
+                print("No weights found, specify download=True to download them.")
+
+        
+        state_dict = torch.load(weights_path, map_location=torch.device('cpu'))
 
         self.n_classes = len(list(state_dict.values())[-1])
      
@@ -44,10 +52,10 @@ class LungMaskSegmenter(nn.Module):
         self.targets = ['Lung']
 
     def forward(self, x):
-        if len(x.shape) == 5:
+        if len(x.shape) == 5: # if a volume
             output = torch.stack([self.model(x[...,i].cuda()) for i in range(x.shape[-1])], 4)
             return torch.sigmoid(output)
-        else:
+        else: #if a single slice
             return torch.sigmoid(self.model(x))
     
 

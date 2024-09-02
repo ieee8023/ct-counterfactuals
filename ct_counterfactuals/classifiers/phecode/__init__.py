@@ -17,21 +17,26 @@ thisfolder = os.path.dirname(__file__)
 
 class PheCodeClassifier(nn.Module):
 
-    def __init__(self):
+    def __init__(self, download=False):
         super(PheCodeClassifier, self).__init__()
 
         self.resolution = 224
         self.crop_size = 224
         
-        _MODEL_PATH = (
+        weights_path = (
             pathlib.Path(latentshift.utils.get_cache_folder()) / "i3_resnet_best_clip_04-02-2024_23-21-36_epoch_99.pt"
         )
 
+        if not os.path.isfile(weights_path):
+            if download:
+                latentshift.utils.download(baseurl + weights, ckpt_path)
+            else:
+                print("No weights found, specify download=True to download them.")
 
         resnet = torchvision.models.resnet152(pretrained=True)
         self.model = i3res.I3ResNet(copy.deepcopy(resnet), class_nb=1692, conv_class=True)
         
-        self.model.load_state_dict(torch.load(_MODEL_PATH, map_location=torch.device('cpu')))
+        self.model.load_state_dict(torch.load(weights_path, map_location=torch.device('cpu')))
         self.model = self.model.eval()
         
     
