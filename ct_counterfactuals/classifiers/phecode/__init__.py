@@ -18,6 +18,14 @@ thisfolder = os.path.dirname(__file__)
 class PheCodeClassifier(nn.Module):
     """A 1692 target classifier predicting phenotypes from CT scans "Model from Merlin: A Vision Language Foundation Model for 3D Computed Tomography"
 
+    ```python
+    import ct_counterfactuals as ct_cf
+    model = ct_cf.classifiers.phecode.PheCodeClassifier()
+    x = torch.ones([1, 1, 224, 224, 174])
+    out = model(x)
+    out.shape # [1, 1692]
+    ```
+
     https://arxiv.org/abs/2406.06512
     """
 
