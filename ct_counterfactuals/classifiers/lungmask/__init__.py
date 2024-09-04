@@ -62,7 +62,7 @@ class LungMaskSegmenter(nn.Module):
         self.model.load_state_dict(state_dict)
         self.model = self.model.eval()
     
-        self.targets = ['Lung']
+        self.targets = ['No Lung', 'Right Lung', 'Left Lung']
 
     def forward(self, x):
         if len(x.shape) == 5: # if a volume

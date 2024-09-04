@@ -11,7 +11,7 @@ baseurl = 'https://github.com/ieee8023/ct-counterfactuals/releases/download/init
 
 class VQGAN(nn.Module):
     
-    def __init__(self, weights=None, ckpt_path=None, yaml_path=None, download=False, resize=None, cache_dir=None):
+    def __init__(self, weights=None, ckpt_path=None, yaml_path=None, download=False, resize=None, rotate_flip=False, cache_dir=None):
         super().__init__()
         
         if (weights is None) and ((ckpt_path is None) and (yaml_path is None)):
@@ -20,6 +20,7 @@ class VQGAN(nn.Module):
         if not weights is None:
             if weights == '2023-12-25T10-26-40_ct2_vqgan256_sddd':
                 resize = 256
+                rotate_flip = True
             
             if cache_dir is None:
                 cache_dir = latentshift.utils.get_cache_folder()
@@ -33,6 +34,8 @@ class VQGAN(nn.Module):
                     print("No weights found, specify download=True to download them.")
         
         self.resize = resize
+        self.rotate_flip = rotate_flip
+        
         c = OmegaConf.load(yaml_path)
         
         self.config = c['model']['params']
@@ -54,17 +57,28 @@ class VQGAN(nn.Module):
         self.input_size = x.shape[3]
         if not self.resize is None:
             x = torchvision.transforms.Resize(self.resize)(x)
+
+        if self.rotate_flip:
+            # if the model was trained in a legacy orientation
+            # we rotate and flip into the standard view
+            x = torch.rot90(x, k=1, dims=[2,3])
+            x = torch.flip(x, dims=[3])
             
         return self.model.encode(x)[0]
     
     def decode(self, z, image_shape=None):
         xp = self.model.decode(z)
+    
+        if self.rotate_flip:
+            xp = torch.flip(xp, dims=[3])
+            xp = torch.rot90(xp, k=3, dims=[2,3])
+        
         if not self.resize is None:
             xp = torchvision.transforms.Resize(self.input_size)(xp)
 
         # the model should output between 0,1
         xp = ((xp+2)/4)
-        
+
         return xp
     
     def forward(self, x):

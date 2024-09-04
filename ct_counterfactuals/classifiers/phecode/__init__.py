@@ -29,11 +29,12 @@ class PheCodeClassifier(nn.Module):
     https://arxiv.org/abs/2406.06512
     """
 
-    def __init__(self, download=False):
+    def __init__(self, download=False, rotate_flip=True):
         super(PheCodeClassifier, self).__init__()
 
         self.resolution = 224
         self.crop_size = 224
+        self.rotate_flip = rotate_flip
         
         weights_path = (
             pathlib.Path(latentshift.utils.get_cache_folder()) / "i3_resnet_best_clip_04-02-2024_23-21-36_epoch_99.pt"
@@ -59,6 +60,13 @@ class PheCodeClassifier(nn.Module):
         self.targets = self.csv.phecode_str.tolist()
 
     def forward(self, x):
+
+        if self.rotate_flip:
+            # if the model was trained in a legacy orientation
+            # we rotate and flip into the standard view
+            x = torch.rot90(x, k=1, dims=[2,3])
+            x = torch.flip(x, dims=[3])
+            
         x = self.upsample(x[0].swapaxes(1,3)).swapaxes(1,3)[None,...]
         
         assert x.shape[-3:-1] == (self.crop_size,self.crop_size)

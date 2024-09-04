@@ -22,6 +22,8 @@ from monai.transforms import (
     SpatialPadd,
     ToTensord, 
     CenterSpatialCropd,
+    Rotate90,
+    Flip,
 )
 
 
@@ -344,6 +346,19 @@ class LUNA16_Dataset():
             raise e
 
 
+class KeyTransform:
+    def __init__(self, keys, transform):
+        self.keys = keys
+        self.transform = transform
+        
+    def __call__(self, data):
+        for key in self.keys:
+            if key in data:
+                data[key] = self.transform(data[key])
+                return data
+            else:
+                raise Exception(f'Missing key {self.key}')
+
 
 class NIFTI_Dataset(Dataset):
     def __init__(self, path, transforms_image=None, resolution=256):
@@ -365,6 +380,8 @@ class NIFTI_Dataset(Dataset):
                         roi_size=[resolution, resolution, -1],
                         keys=["image"],
                     ),
+                    KeyTransform(keys=["image"], transform=Rotate90(k=1, spatial_axes=(0,1))),
+                    KeyTransform(keys=["image"], transform=Flip(spatial_axis=1)),
                     ToTensord(keys=["image"]),
                 ]
             )
