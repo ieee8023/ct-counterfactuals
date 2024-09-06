@@ -1,5 +1,4 @@
 import pandas as pd
-import nibabel as nib
 import torchvision
 import torchxrayvision as xrv
 from tqdm.autonotebook import tqdm
@@ -195,6 +194,7 @@ class _TotalSegmenter_Dataset():
 
             
     def create_meta(self, filename):
+        import nibabel as nib
         sizes = []
         for i, row in tqdm(self.raw_csv.iterrows(), total=self.raw_csv.shape[0]):
             g = nib.load(self.path + row.image_id + "/ct.nii.gz")
@@ -212,6 +212,7 @@ class _TotalSegmenter_Dataset():
         
 
     def create_cache(self):
+        import nibabel as nib
         os.makedirs(self.cache_dir, exist_ok=True)
         
         for image_id, row in tqdm(self.csv.groupby('image_id')):
