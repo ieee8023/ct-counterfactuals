@@ -30,8 +30,8 @@ class VQGAN(nn.Module):
             yaml_path = cache_dir + weights + '.yaml'
             if (not os.path.isfile(ckpt_path)) or (not os.path.isfile(yaml_path)):
                 if download:
-                    latentshift.utils.download(baseurl + weights, ckpt_path)
-                    latentshift.utils.download(baseurl + weights, yaml_path)
+                    latentshift.utils.download(baseurl + weights + '.ckpt', ckpt_path)
+                    latentshift.utils.download(baseurl + weights + '.yaml', yaml_path)
                 else:
                     print("No weights found, specify download=True to download them.")
         

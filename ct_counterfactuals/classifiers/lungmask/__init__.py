@@ -9,6 +9,7 @@ import torch.nn as nn
 import latentshift
 from .resunet import UNet
 
+baseurl = 'https://github.com/ieee8023/ct-counterfactuals/releases/download/init/'
 
 class LungMaskSegmenter(nn.Module):
     """U-net(R231): This model was trained on a large and diverse dataset that covers a wide range of visual variabiliy. The model performs segmentation on individual slices, extracts right-left lung seperately includes airpockets, tumors and effusions. The trachea will not be included in the lung segmentation. https://doi.org/10.1186/s41747-020-00173-2
@@ -31,22 +32,23 @@ class LungMaskSegmenter(nn.Module):
     Hofmanninger, J., Prayer, F., Pan, J. et al. Automatic lung segmentation in routine imaging is primarily a data diversity problem, not a methodology problem. Eur Radiol Exp 4, 50 (2020). https://doi.org/10.1186/s41747-020-00173-2
     """
 
-    def __init__(self, download=False):
+    def __init__(self, download=False, cache_dir=None):
         super(LungMaskSegmenter, self).__init__()
 
         self.resolution = 224
-        
-        weights_path = (
-            pathlib.Path(latentshift.utils.get_cache_folder()) / "lungmask-unet_r231-d5d2fc3d.pth"
-        )
+
+        if cache_dir is None:
+            cache_dir = latentshift.utils.get_cache_folder()
+
+        weights = "lungmask-unet_r231-d5d2fc3d.pth"
+        weights_path = pathlib.Path(cache_dir) / weights
 
         if not os.path.isfile(weights_path):
             if download:
-                latentshift.utils.download(baseurl + weights, ckpt_path)
+                latentshift.utils.download(baseurl + weights, weights_path)
             else:
-                print("No weights found, specify download=True to download them.")
-
-        
+                raise Exception("No weights found, specify download=True to download them.")
+                
         state_dict = torch.load(weights_path, map_location=torch.device('cpu'))
 
         self.n_classes = len(list(state_dict.values())[-1])

@@ -14,6 +14,7 @@ import copy
 
 
 thisfolder = os.path.dirname(__file__)
+baseurl = 'https://github.com/ieee8023/ct-counterfactuals/releases/download/init/'
 
 class PheCodeClassifier(nn.Module):
     """A 1692 target classifier predicting phenotypes from CT scans "Model from Merlin: A Vision Language Foundation Model for 3D Computed Tomography"
@@ -29,24 +30,27 @@ class PheCodeClassifier(nn.Module):
     https://arxiv.org/abs/2406.06512
     """
 
-    def __init__(self, download=False, rotate_flip=True):
+    def __init__(self, download=False, rotate_flip=True, cache_dir=None):
         super(PheCodeClassifier, self).__init__()
 
         self.resolution = 224
         self.crop_size = 224
         self.rotate_flip = rotate_flip
+
+        weights = "i3_resnet_best_clip_04-02-2024_23-21-36_epoch_99.pt"
+
+        if cache_dir is None:
+            cache_dir = latentshift.utils.get_cache_folder()
         
-        weights_path = (
-            pathlib.Path(latentshift.utils.get_cache_folder()) / "i3_resnet_best_clip_04-02-2024_23-21-36_epoch_99.pt"
-        )
+        weights_path = pathlib.Path(cache_dir) / weights
 
         if not os.path.isfile(weights_path):
             if download:
-                latentshift.utils.download(baseurl + weights, ckpt_path)
+                latentshift.utils.download(baseurl + weights, weights_path)
             else:
-                print("No weights found, specify download=True to download them.")
+                raise Exception("No weights found, specify download=True to download them.")
 
-        resnet = torchvision.models.resnet152(pretrained=True)
+        resnet = torchvision.models.resnet152(pretrained=False)
         self.model = i3res.I3ResNet(copy.deepcopy(resnet), class_nb=1692, conv_class=True)
         
         self.model.load_state_dict(torch.load(weights_path, map_location=torch.device('cpu')))

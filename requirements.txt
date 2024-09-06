@@ -5,3 +5,4 @@ pandas
 torchxrayvision
 omegaconf
 monai
+git+https://github.com/ieee8023/captum 
