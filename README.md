@@ -3,8 +3,7 @@
 The code and models here were used in the Paper [📄 Merlin: A Vision Language Foundation Model for 3D Computed Tomography
 ](https://arxiv.org/abs/2406.06512).
 
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)]([https://colab.research.google.com/github/ieee8023/latentshift/blob/main/example.ipynb](https://github.com/ieee8023/ct-counterfactuals/blob/main/pleural-effusion.ipynb))
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ieee8023/ct-counterfactuals/blob/main/pleural-effusion.ipynb)
 
 ## Classifiers
 
