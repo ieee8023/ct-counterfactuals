@@ -5,8 +5,7 @@ import torch
 from torch.nn import ReplicationPad3d
 import torch.utils.checkpoint as checkpoint
 
-from contrastive_3d.models.inflated_convnets_pytorch.src import inflate
-from contrastive_3d.utils import window_level
+from . import inflate, window_level
 
 
 class I3ResNet(torch.nn.Module):

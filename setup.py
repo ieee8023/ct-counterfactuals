@@ -8,7 +8,7 @@ REQUIREMENTS = [i.strip() for i in open("requirements.txt").readlines()]
 
 setuptools.setup(
     name="ct-counterfactuals",
-    version="0.0.1",
+    version="0.0.2",
     author="Joseph Paul Cohen",
     author_email="joseph@josephpcohen.com",
     description="Models and methods to generate counterfactuals for computed tomography scans",
