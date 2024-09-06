@@ -88,6 +88,8 @@ class VQGAN(nn.Module):
 
 
 class SliceAECrop:
+    """Encodes just a subset of slices and replaced the rest with the input volume.
+    Prefer SliceAEFull over this class."""
     def __init__(self, ae, start, end, limit_to_slices=False):
         self.ae = ae
         self.start = start
@@ -95,12 +97,14 @@ class SliceAECrop:
         self.limit_to_slices = limit_to_slices
         
     def encode(self,x):
-        """Slice from the """
+        """Ignores the region outside of the slice.
+        Only encodes slices from start to end."""
         self.x = x
         zz = x[:,:,:,:,self.start:self.end].transpose(-1,0)[...,0]
         return self.ae.encode(zz)
 
     def decode(self,zz):
+        """Decodes the encoded slices and then concats the other slices from the volume."""
         xxp = self.ae.decode(zz)
         if self.limit_to_slices:
             return  xxp[...,None].transpose(-1,0)
@@ -117,7 +121,7 @@ class SliceAEFull:
         self.batch_size = batch_size
         
     def encode(self, x):
-        """Slice from the """
+        """Encodes the entire volume in batches and concatenates the embeddings. Gradients blocked."""
         zz = x.transpose(-1,0)[...,0]
         with torch.no_grad():
             zs = [self.ae.encode(zz[i:i+self.batch_size]) for i in np.arange(0,len(zz),self.batch_size)]
@@ -125,7 +129,8 @@ class SliceAEFull:
         return zs
 
     def decode(self, zz):
-
+        """Decodes the embeddings in batches and concats them. Gradients blocked.
+        Then decodes a specific range with gradients enabled."""
         with torch.no_grad():
             xx = [self.ae.decode(zz[i:i+self.batch_size]) for i in np.arange(0,len(zz),self.batch_size)]
             
