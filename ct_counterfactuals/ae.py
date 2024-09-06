@@ -10,7 +10,9 @@ import os
 baseurl = 'https://github.com/ieee8023/ct-counterfactuals/releases/download/init/'
 
 class VQGAN(nn.Module):
-    
+    """
+    weights='2023-12-25T10-26-40_ct2_vqgan256_sddd' Trained on slices from TotalSegmenter, DeepLesion, and LUNA16 datasets.
+    """
     def __init__(self, weights=None, ckpt_path=None, yaml_path=None, download=False, resize=None, rotate_flip=False, cache_dir=None):
         super().__init__()
         
