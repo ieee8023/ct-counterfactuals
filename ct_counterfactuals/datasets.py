@@ -25,15 +25,77 @@ from monai.transforms import (
     Rotate90,
     Flip,
 )
-
-
 from torch.utils.data import Dataset
 
 
+class KeyTransform:
+    def __init__(self, keys, transform):
+        self.keys = keys
+        self.transform = transform
+        
+    def __call__(self, data):
+        for key in self.keys:
+            if key in data:
+                data[key] = self.transform(data[key])
+                return data
+            else:
+                raise Exception(f'Missing key {self.key}')
 
 
-def get_data(datasets_str, size=512, transform=None, path="/home/users/joecohen/scratch/data-cts/", merge=True):
-    
+class NIFTI_Dataset(Dataset):
+    def __init__(self, path, transforms_image=None, resolution=256):
+
+        self.path = path
+        if transforms_image is None:
+            # Initialize the image preprocessing transforms
+            transforms_image = Compose(
+                [
+                    LoadImaged(keys=["image"]),
+                    EnsureChannelFirstd(keys=["image"]),
+                    Orientationd(keys=["image"], axcodes="RAS"),
+                    Spacingd(keys=["image"], pixdim=(1.5, 1.5, 3), mode=("bilinear")),
+                    ScaleIntensityRanged(
+                        keys=["image"], a_min=-1000, a_max=1000, b_min=0.0, b_max=1.0, clip=True
+                    ),
+                    SpatialPadd(keys=["image"], spatial_size=[resolution, resolution, -1]),
+                    CenterSpatialCropd(
+                        roi_size=[resolution, resolution, -1],
+                        keys=["image"],
+                    ),
+                    KeyTransform(keys=["image"], transform=Rotate90(k=1, spatial_axes=(0,1))),
+                    KeyTransform(keys=["image"], transform=Flip(spatial_axis=1)),
+                    ToTensord(keys=["image"]),
+                ]
+            )
+        
+        image_paths = glob.glob(self.path + "*.nii*")
+        data_list = [{"image": image_path, "image_path": image_path} for image_path in image_paths]
+        self.dataset = monai.data.Dataset(data_list, transform=transforms_image)
+
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, idx):
+        return self.dataset[idx]
+
+
+
+def window_level(x, lower, upper):
+    # abdomen, 50, 400
+    lower = lower/2048 + 0.5
+    upper = upper/2048 + 0.5
+    print(lower, upper)
+    x = np.minimum(x, upper)
+    x = np.maximum(x, lower)
+    return x
+
+
+
+
+
+def _get_data(datasets_str, size=512, transform=None, path="/home/users/joecohen/scratch/data-cts/", merge=True):
+    """This function is deprecated for now"""
     datasets = []
     
     if "total" in datasets_str:
@@ -107,7 +169,8 @@ class ResizeScale:
         )
 
 
-class TotalSegmenter_Dataset():
+class _TotalSegmenter_Dataset():
+    """This dataset is deprecated for now"""
     def __init__(self, path, transform=None):
         super().__init__()
         
@@ -192,7 +255,8 @@ class TotalSegmenter_Dataset():
             raise e
 
 
-class DeepLesion_Dataset():
+class _DeepLesion_Dataset():
+    """This dataset is deprecated for now"""
     def __init__(self, path, transform=None, img_folder_path='/Images_png/Images_png/'):
         super().__init__()
         
@@ -250,7 +314,8 @@ class DeepLesion_Dataset():
             raise e
 
 
-class LUNA16_Dataset():
+class _LUNA16_Dataset():
+    """This dataset is deprecated for now"""
     def __init__(self, path, transform=None):
         super().__init__()
         
@@ -345,66 +410,3 @@ class LUNA16_Dataset():
             print(f'Issue with {cache_path}')
             raise e
 
-
-class KeyTransform:
-    def __init__(self, keys, transform):
-        self.keys = keys
-        self.transform = transform
-        
-    def __call__(self, data):
-        for key in self.keys:
-            if key in data:
-                data[key] = self.transform(data[key])
-                return data
-            else:
-                raise Exception(f'Missing key {self.key}')
-
-
-class NIFTI_Dataset(Dataset):
-    def __init__(self, path, transforms_image=None, resolution=256):
-
-        self.path = path
-        if transforms_image is None:
-            # Initialize the image preprocessing transforms
-            transforms_image = Compose(
-                [
-                    LoadImaged(keys=["image"]),
-                    EnsureChannelFirstd(keys=["image"]),
-                    Orientationd(keys=["image"], axcodes="RAS"),
-                    Spacingd(keys=["image"], pixdim=(1.5, 1.5, 3), mode=("bilinear")),
-                    ScaleIntensityRanged(
-                        keys=["image"], a_min=-1000, a_max=1000, b_min=0.0, b_max=1.0, clip=True
-                    ),
-                    SpatialPadd(keys=["image"], spatial_size=[resolution, resolution, -1]),
-                    CenterSpatialCropd(
-                        roi_size=[resolution, resolution, -1],
-                        keys=["image"],
-                    ),
-                    KeyTransform(keys=["image"], transform=Rotate90(k=1, spatial_axes=(0,1))),
-                    KeyTransform(keys=["image"], transform=Flip(spatial_axis=1)),
-                    ToTensord(keys=["image"]),
-                ]
-            )
-        
-        image_paths = glob.glob(self.path + "*.nii*")
-        data_list = [{"image": image_path, "image_path": image_path} for image_path in image_paths]
-        self.dataset = monai.data.Dataset(data_list, transform=transforms_image)
-
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def __getitem__(self, idx):
-        return self.dataset[idx]
-
-
-
-def window_level(x, lower, upper):
-    # abdomen, 50, 400
-    lower = lower/2048 + 0.5
-    upper = upper/2048 + 0.5
-    print(lower, upper)
-    x = np.minimum(x, upper)
-    x = np.maximum(x, lower)
-    return x
-    
