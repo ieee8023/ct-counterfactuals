@@ -1,6 +1,8 @@
-# CT Counterfactuals
+# Computed Tomography Counterfactuals
 
-The code and models here were used in the Paper [📄 Merlin: A Vision Language Foundation Model for 3D Computed Tomography
+This repo contains code and models to generate counterfactual images (modifying the images so a classifier will not predict positive for a class) for 3D Computed Tomography volumes. The method used is [Latent Shift](https://arxiv.org/abs/2102.09475).
+
+This code was used for the paper and [📄 Merlin: A Vision Language Foundation Model for 3D Computed Tomography
 ](https://arxiv.org/abs/2406.06512).
 
 ## Example CF explainations of the classifier
@@ -20,7 +22,7 @@ Lung Segmentation Size Prediction
 
 ## Classifiers
 
-A 1692 target classifier predicting phenotypes from CT scans
+A 1692 target classifier predicting phenotypes from CT scans. From [Merlin](https://arxiv.org/abs/2406.06512).
 ```python
 import ct_counterfactuals as ct_cf
 model = ct_cf.classifiers.phecode.PheCodeClassifier()
