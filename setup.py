@@ -23,4 +23,7 @@ setuptools.setup(
     python_requires='>=3.6',
     install_requires=REQUIREMENTS,
     packages=find_packages(),
+    package_dir={'ct_counterfactuals': 'ct_counterfactuals'},
+    package_data={'ct_counterfactuals': ['classifiers/phecode/*.csv', 'classifiers/phecode/*/*.csv']},
+
 )

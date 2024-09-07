@@ -3,5 +3,6 @@ numpy
 tqdm
 pandas
 torchxrayvision
+latentshift
 omegaconf
 monai
