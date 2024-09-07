@@ -55,7 +55,7 @@ out.shape # [1, 1, 224, 224]
 ```
 
 Utility code is provided to encode 3D volumes
-```
+```python
 import ct_counterfactuals as ct_cf
 ae = ct_cf.ae.VQGAN(weights='2023-12-25T10-26-40_ct2_vqgan256_sddd')
 
@@ -65,3 +65,8 @@ out = ae(x)
 out.shape # [1, 1, 224, 224, 174]
 ```
 
+## PIP install
+
+```
+pip install ct-counterfactuals
+```
