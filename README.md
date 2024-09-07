@@ -3,6 +3,12 @@
 The code and models here were used in the Paper [📄 Merlin: A Vision Language Foundation Model for 3D Computed Tomography
 ](https://arxiv.org/abs/2406.06512).
 
+## Example CF explainations of the classifier
+
+| Pleural Effusion (fluid in lungs) | Splenomegaly (enlarged spleen)| Lung Size |
+| ----------- | ----------- |----------- |
+| <img src="docs/effusion2.gif" width="100%"> |  <img src="docs/Splenomegaly.gif" width="100%"> | <img src="docs/lung-size.gif" width="100%"> |
+
 ## Demos
 
 Pleural Effusion Classification
@@ -59,8 +65,3 @@ out = ae(x)
 out.shape # [1, 1, 224, 224, 174]
 ```
 
-## Example CF explainations of the classifier
-
-| Effusion (fluid in lungs) | Splenomegaly (enlarged spleen)|
-| ----------- | ----------- |
-| <img src="docs/effusion2.gif" width="100%"> |  <img src="docs/Splenomegaly.gif" width="100%"> | 
