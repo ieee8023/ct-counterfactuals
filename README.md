@@ -3,7 +3,14 @@
 The code and models here were used in the Paper [📄 Merlin: A Vision Language Foundation Model for 3D Computed Tomography
 ](https://arxiv.org/abs/2406.06512).
 
+## Demos
+
+Pleural Effusion Classification
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ieee8023/ct-counterfactuals/blob/main/pleural-effusion.ipynb)
+
+Lung Segmentation Size Prediction
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ieee8023/ct-counterfactuals/blob/main/lung-size.ipynb)
+
 
 ## Classifiers
 
