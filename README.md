@@ -2,7 +2,7 @@
 
 This repo contains code and models to generate counterfactual images (modifying the images so a classifier will not predict positive for a class) for 3D Computed Tomography volumes. The method used is [Latent Shift](https://arxiv.org/abs/2102.09475).
 
-This code was used for the paper and [📄 Merlin: A Vision Language Foundation Model for 3D Computed Tomography
+This code was used in the paper [📄 Merlin: A Vision Language Foundation Model for 3D Computed Tomography
 ](https://arxiv.org/abs/2406.06512).
 
 ## Example CF explainations of the classifier
