@@ -6,3 +6,4 @@ torchxrayvision
 latentshift
 omegaconf
 monai
+nibabel
