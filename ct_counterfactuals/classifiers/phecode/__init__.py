@@ -30,12 +30,14 @@ class PheCodeClassifier(nn.Module):
     https://arxiv.org/abs/2406.06512
     """
 
-    def __init__(self, download=False, rotate_flip=True, cache_dir=None):
+    def __init__(self, download=False, rotate_flip=True, cache_dir=None, use_thresholds=True):
         super(PheCodeClassifier, self).__init__()
 
         self.resolution = 224
         self.crop_size = 224
         self.rotate_flip = rotate_flip
+        self.use_thresholds = use_thresholds
+        self.thresholds = torch.sigmoid(torch.tensor(thresholds))
 
         weights = "i3_resnet_best_clip_04-02-2024_23-21-36_epoch_99.pt"
 
@@ -55,7 +57,6 @@ class PheCodeClassifier(nn.Module):
         
         self.model.load_state_dict(torch.load(weights_path, map_location=torch.device('cpu')))
         self.model = self.model.eval()
-        
     
         self.upsample = torch.nn.Upsample(size=(self.resolution, self.resolution), mode='bilinear', align_corners=False)
         self.crop = torchvision.transforms.CenterCrop(self.crop_size)
@@ -76,9 +77,37 @@ class PheCodeClassifier(nn.Module):
         assert x.shape[-3:-1] == (self.crop_size,self.crop_size)
         preds = self.model(x)[1]
         preds = torch.sigmoid(preds)
+        if self.use_thresholds:
+            preds = op_norm(preds, self.thresholds.to(x.device))
         
         return preds
-    
+
+
+def op_norm(outputs, op_threshs):
+    """Normalize outputs according to operating points for a given model.
+    Args: 
+        outputs: outputs of self.classifier(). torch.Size(batch_size, num_tasks) 
+        op_threshs_arr: torch.Size(batch_size, num_tasks) with self.op_threshs expanded.
+    Returns:
+        outputs_new: normalized outputs, torch.Size(batch_size, num_tasks)
+    """
+    # expand to batch size so we can do parallel comp
+    op_threshs = op_threshs.expand(outputs.shape[0], -1)
+
+    # initial values will be 0.5
+    outputs_new = torch.zeros(outputs.shape, device=outputs.device) + 0.5
+
+    # only select non-nan elements otherwise the gradient breaks
+    mask_leq = (outputs < op_threshs) & ~torch.isnan(op_threshs)
+    mask_gt = ~(outputs < op_threshs) & ~torch.isnan(op_threshs)
+
+    # scale outputs less than thresh
+    outputs_new[mask_leq] = outputs[mask_leq] / (op_threshs[mask_leq] * 2)
+    # scale outputs greater than thresh
+    outputs_new[mask_gt] = 1.0 - ((1.0 - outputs[mask_gt]) / ((1 - op_threshs[mask_gt]) * 2))
+
+    return outputs_new
+
 
 def _map_to_phenotypes():
 
